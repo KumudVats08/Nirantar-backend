@@ -32,6 +32,21 @@ def get_db():
         db.close()
 
 
+@app.on_event("startup")
+def seed_if_empty():
+    """
+    Render's free tier disk is not persistent, so hospital.db is recreated
+    empty on every redeploy/restart. This seeds it automatically the first
+    time, and does nothing if data already exists (so it's safe locally too).
+    """
+    db = SessionLocal()
+    try:
+        if db.query(LegacyPatient).count() == 0:
+            import seed  # running this module seeds the DB as a side effect
+    finally:
+        db.close()
+
+
 @app.get("/patients/{patient_id}/validate")
 def validate_patient_data(
     patient_id: str,
@@ -378,7 +393,3 @@ def patient_migration_status(
             "rolled_back": current_state == MigrationState.ROLLED_BACK
         }
     }
-
-
-
-
